@@ -384,6 +384,41 @@
       display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px
     }
 
+
+    /* ANNUAL / IR */
+    .annual-note{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:15px 16px;
+      margin-bottom:14px;
+      background:#fffdf5;
+      border:1px solid #f2ead1;
+      border-radius:16px;
+      color:#756844;
+      font-size:11.5px;
+      line-height:1.55;
+    }
+    .annual-note svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+    .annual-note strong{color:#5e5438}
+    .annual-grid{
+      display:grid;
+      grid-template-columns:1.25fr .75fr;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .annual-kpis{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .tax-highlight{
+      background:linear-gradient(135deg,#fff,#fbfff0);
+      border-color:#e6edc8;
+    }
+    .annual-table-card{padding:18px}
+
     /* MOBILE */
     .mobile-menu { display:none; }
     @media (max-width:1100px) {
@@ -404,7 +439,8 @@
       .topbar { align-items:flex-start; }
       .top-controls { flex-wrap:wrap;justify-content:flex-end; }
       .welcome h1 { font-size:25px; }
-      .metrics,.stats-3,.client-summary { grid-template-columns:1fr; }
+      .metrics,.stats-3,.client-summary,.annual-kpis { grid-template-columns:1fr; }
+      .annual-grid { grid-template-columns:1fr; }
       .client-layout,.form-grid { grid-template-columns:1fr; }
       .goal { grid-template-columns:1fr; }
       .goal-score { width:78px;height:78px; }
@@ -443,6 +479,7 @@
       <button class="nav-btn" data-view="expenses"><i data-lucide="receipt-text"></i>Despesas mensais</button>
       <button class="nav-btn" data-view="recurring"><i data-lucide="repeat-2"></i>Receita recorrente</button>
       <button class="nav-btn" data-view="clients"><i data-lucide="user-plus"></i>Cadastro de clientes</button>
+      <button class="nav-btn" data-view="annual"><i data-lucide="file-spreadsheet"></i>Resumo anual / IR</button>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -699,6 +736,95 @@
       </div>
     </section>
 
+
+    <!-- ANNUAL / IR -->
+    <section id="view-annual" class="view">
+      <div class="page-head">
+        <div>
+          <h2>Resumo anual / Imposto de Renda</h2>
+          <p>Consolidação financeira do ano selecionado para organização de documentos e apoio à declaração.</p>
+        </div>
+      </div>
+
+      <div class="annual-note">
+        <i data-lucide="info"></i>
+        <div>
+          <strong>Importante:</strong> este painel organiza os dados financeiros disponíveis na sua base, mas não substitui a apuração contábil ou fiscal.
+          Como suas despesas ainda não possuem mês/ano individual na base, o valor anual de despesas abaixo é uma <strong>estimativa baseada no custo mensal atual × 12</strong>.
+        </div>
+      </div>
+
+      <div class="annual-kpis">
+        <article class="metric card tax-highlight">
+          <div class="metric-top"><div class="metric-label">Faturamento bruto anual</div><div class="metric-icon green"><i data-lucide="banknote"></i></div></div>
+          <div id="annualRevenue" class="metric-value">R$ 0,00</div>
+          <div class="metric-foot">Soma das receitas do ano</div>
+        </article>
+
+        <article class="metric card">
+          <div class="metric-top"><div class="metric-label">Média mensal</div><div class="metric-icon purple"><i data-lucide="chart-no-axes-column-increasing"></i></div></div>
+          <div id="annualAvg" class="metric-value">R$ 0,00</div>
+          <div class="metric-foot">Faturamento anual / 12</div>
+        </article>
+
+        <article class="metric card">
+          <div class="metric-top"><div class="metric-label">Despesas anuais estimadas</div><div class="metric-icon orange"><i data-lucide="receipt"></i></div></div>
+          <div id="annualExpenses" class="metric-value">R$ 0,00</div>
+          <div class="metric-foot">Despesas mensais cadastradas × 12</div>
+        </article>
+
+        <article class="metric card">
+          <div class="metric-top"><div class="metric-label">Resultado estimado anual</div><div class="metric-icon blue"><i data-lucide="calculator"></i></div></div>
+          <div id="annualProfit" class="metric-value">R$ 0,00</div>
+          <div class="metric-foot">Faturamento − despesas estimadas</div>
+        </article>
+      </div>
+
+      <div class="annual-grid">
+        <article class="panel card">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Faturamento mês a mês</div>
+              <div class="panel-sub">Receita bruta consolidada do ano selecionado</div>
+            </div>
+          </div>
+          <div class="wide-chart"><canvas id="annualRevenueChart"></canvas></div>
+        </article>
+
+        <article class="panel card">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Composição anual</div>
+              <div class="panel-sub">Receita recorrente x avulsa / não classificada</div>
+            </div>
+          </div>
+          <div class="wide-chart"><canvas id="annualMixChart"></canvas></div>
+        </article>
+      </div>
+
+      <div class="lower-grid">
+        <article class="annual-table-card card">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Resumo mensal do ano</div>
+              <div class="panel-sub">Base para conferência de receitas ao longo do ano</div>
+            </div>
+          </div>
+          <div id="annualMonthlyTable"></div>
+        </article>
+
+        <article class="annual-table-card card">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Receita anual por cliente</div>
+              <div class="panel-sub">Clientes ordenados pelo total faturado no ano</div>
+            </div>
+          </div>
+          <div id="annualClientsTable"></div>
+        </article>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -800,6 +926,7 @@ function renderAll(){
   renderExpenses();
   renderRecurring();
   renderClientsManagement();
+  renderAnnualSummary();
   lucide.createIcons();
 }
 
@@ -1029,6 +1156,118 @@ async function cadastrarCliente(e){
   }
 }
 
+
+function renderAnnualSummary(){
+  const year=Number(state.selectedYear);
+  const yearRows=state.receitas.filter(r=>Number(r.ano)===year);
+
+  const monthTotals=Array.from({length:12},()=>0);
+  yearRows.forEach(r=>{
+    const m=Number(r.mes);
+    if(m>=1&&m<=12) monthTotals[m-1]+=Number(r.valor||0);
+  });
+
+  const annualRevenue=monthTotals.reduce((s,v)=>s+v,0);
+  const exp=expenseTotals();
+  const annualExpenses=exp.total*12;
+  const annualProfit=annualRevenue-annualExpenses;
+  const annualAvg=annualRevenue/12;
+
+  setText("annualRevenue",money(annualRevenue));
+  setText("annualAvg",money(annualAvg));
+  setText("annualExpenses",money(annualExpenses));
+  setText("annualProfit",money(annualProfit));
+
+  const recurring=yearRows.filter(r=>norm(r.tipo)==="recorrente").reduce((s,r)=>s+Number(r.valor||0),0);
+  const nonRecurring=Math.max(0,annualRevenue-recurring);
+
+  destroyChart("annualRevenue");
+  state.charts.annualRevenue=new Chart($("annualRevenueChart"),{
+    type:"bar",
+    data:{
+      labels:MONTH_NAMES.map(m=>m.slice(0,3)),
+      datasets:[{
+        data:monthTotals,
+        backgroundColor:"#d1fa20",
+        borderRadius:7,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>money(c.raw)}}
+      },
+      scales:{
+        x:{grid:{display:false}},
+        y:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}
+      }
+    }
+  });
+
+  destroyChart("annualMix");
+  state.charts.annualMix=new Chart($("annualMixChart"),{
+    type:"doughnut",
+    data:{
+      labels:["Recorrente","Avulsa / não classificada"],
+      datasets:[{
+        data:[recurring,nonRecurring],
+        backgroundColor:["#31a66a","#d9dbe2"],
+        borderColor:"#fff",
+        borderWidth:5
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      cutout:"68%",
+      plugins:{
+        legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}
+      }
+    }
+  });
+
+  $("annualMonthlyTable").innerHTML=`
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mês</th><th>Faturamento</th><th>% do ano</th></tr></thead>
+        <tbody>
+          ${MONTH_NAMES.map((m,i)=>{
+            const value=monthTotals[i];
+            const share=annualRevenue?value/annualRevenue*100:0;
+            return `<tr><td class="strong">${m}</td><td class="strong">${money(value)}</td><td>${pct(share)}</td></tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>`;
+
+  const byClient=new Map();
+  yearRows.forEach(r=>{
+    const name=(r.empresa||"Sem identificação").trim();
+    byClient.set(name,(byClient.get(name)||0)+Number(r.valor||0));
+  });
+  const clientRows=[...byClient.entries()].sort((a,b)=>b[1]-a[1]);
+
+  $("annualClientsTable").innerHTML=clientRows.length?`
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cliente</th><th>Total anual</th><th>% do ano</th></tr></thead>
+        <tbody>
+          ${clientRows.map(([name,value])=>`
+            <tr>
+              <td class="strong">${esc(name)}</td>
+              <td class="strong">${money(value)}</td>
+              <td>${annualRevenue?pct(value/annualRevenue*100):"0%"}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>`:'<div class="empty">Nenhuma receita registrada neste ano.</div>';
+}
+
 function changeView(view){
   state.view=view;
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
@@ -1038,7 +1277,8 @@ function changeView(view){
     overview:["Olá, Evandro 👋","Aqui está a visão financeira da sua agência."],
     expenses:["Despesas mensais","Acompanhe onde o dinheiro da operação está sendo consumido."],
     recurring:["Receita recorrente","Veja a base previsível de receita e sua participação no faturamento."],
-    clients:["Cadastro de clientes","Cadastre contratos e acompanhe sua carteira de clientes."]
+    clients:["Cadastro de clientes","Cadastre contratos e acompanhe sua carteira de clientes."],
+    annual:["Resumo anual / IR","Consolidação financeira anual para organização da declaração."]
   };
   setText("pageGreeting",titles[view][0]);
   setText("pageContext",titles[view][1]);
