@@ -919,6 +919,45 @@
   </main>
 </div>
 
+
+<div id="settingsBackdrop" class="settings-backdrop"></div>
+<aside id="settingsDrawer" class="settings-drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title">Ajuste de metas</div>
+      <div class="drawer-sub">Defina metas mensais de 2025 até 2050</div>
+    </div>
+    <button id="closeSettingsBtn" class="icon-btn"><i data-lucide="x"></i></button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="drawer-section-title">ANO</div>
+      <select id="goalYearSelect" class="form-control"></select>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">META PADRÃO PARA O ANO</div>
+      <div class="drawer-grid">
+        <input id="yearDefaultGoal" class="form-control" type="number" min="0" step="100" value="5000">
+        <button id="applyYearGoalBtn" class="btn-secondary" type="button">Aplicar aos 12 meses</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">METAS MENSAIS</div>
+      <div id="monthlyGoalInputs" class="goal-list"></div>
+    </div>
+
+    <div id="goalSettingsMsg" class="form-message"></div>
+  </div>
+
+  <div class="drawer-actions">
+    <button id="cancelGoalSettingsBtn" class="btn-secondary" type="button">Cancelar</button>
+    <button id="saveGoalSettingsBtn" class="btn-save" type="button">Salvar metas</button>
+  </div>
+</aside>
+
 <script>
 const SUPABASE_URL = "https://tukdayxfwzajngzddapa.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Exdmo6MHcWct72Nk2FPAQw_y0ViL6Hv";
@@ -994,7 +1033,7 @@ function applyTheme(theme){
   setText("themeLabel",dark?"Claro":"Escuro");
   $("themeToggle").innerHTML=dark?'<i data-lucide="sun"></i><span id="themeLabel">Claro</span>':'<i data-lucide="moon"></i><span id="themeLabel">Escuro</span>';
   lucide.createIcons();
-  renderAll();
+  if (!$("appView").classList.contains("hidden")) renderAll();
 }
 
 function toggleTheme(){
@@ -1532,8 +1571,16 @@ $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const btn=$("loginBtn"),msg=$("loginMsg");
   msg.textContent="";btn.disabled=true;btn.textContent="Entrando...";
-  try{await login($("email").value.trim(),$("password").value);setViewLogged(true);await loadAllData();state.refreshTimer=setInterval(loadAllData,60000);}
-  catch(err){msg.textContent=err.message||"Não foi possível entrar.";}
+  try{
+    await login($("email").value.trim(),$("password").value);
+    setViewLogged(true);
+    await loadAllData();
+    state.refreshTimer=setInterval(loadAllData,60000);
+  }
+  catch(err){
+    console.error(err);
+    msg.textContent=err.message||"Não foi possível entrar.";
+  }
   finally{btn.disabled=false;btn.textContent="Entrar";}
 });
 
@@ -1546,44 +1593,6 @@ async function boot(){
 }
 boot();
 </script>
-
-<div id="settingsBackdrop" class="settings-backdrop"></div>
-<aside id="settingsDrawer" class="settings-drawer">
-  <div class="drawer-head">
-    <div>
-      <div class="drawer-title">Ajuste de metas</div>
-      <div class="drawer-sub">Defina metas mensais de 2025 até 2050</div>
-    </div>
-    <button id="closeSettingsBtn" class="icon-btn"><i data-lucide="x"></i></button>
-  </div>
-
-  <div class="drawer-body">
-    <div class="drawer-section">
-      <div class="drawer-section-title">ANO</div>
-      <select id="goalYearSelect" class="form-control"></select>
-    </div>
-
-    <div class="drawer-section">
-      <div class="drawer-section-title">META PADRÃO PARA O ANO</div>
-      <div class="drawer-grid">
-        <input id="yearDefaultGoal" class="form-control" type="number" min="0" step="100" value="5000">
-        <button id="applyYearGoalBtn" class="btn-secondary" type="button">Aplicar aos 12 meses</button>
-      </div>
-    </div>
-
-    <div class="drawer-section">
-      <div class="drawer-section-title">METAS MENSAIS</div>
-      <div id="monthlyGoalInputs" class="goal-list"></div>
-    </div>
-
-    <div id="goalSettingsMsg" class="form-message"></div>
-  </div>
-
-  <div class="drawer-actions">
-    <button id="cancelGoalSettingsBtn" class="btn-secondary" type="button">Cancelar</button>
-    <button id="saveGoalSettingsBtn" class="btn-save" type="button">Salvar metas</button>
-  </div>
-</aside>
 
 </body>
 </html>
