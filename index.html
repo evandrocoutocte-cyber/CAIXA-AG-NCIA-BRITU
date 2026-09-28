@@ -45,6 +45,55 @@
     button { cursor:pointer; }
     .hidden { display:none!important; }
 
+
+    body.dark{
+      --page:#0d1015;
+      --sidebar:#11151b;
+      --card:#151a21;
+      --card-soft:#191f27;
+      --text:#f4f6f8;
+      --muted:#9ba3ad;
+      --muted-2:#747c86;
+      --line:#252c35;
+      --accent:#d1fa20;
+      --accent-dark:#b7db18;
+      --accent-soft:rgba(209,250,32,.12);
+      --purple:#9c8cff;
+      --purple-soft:rgba(156,140,255,.12);
+      --blue:#6aa7ff;
+      --blue-soft:rgba(106,167,255,.12);
+      --orange:#ffb15e;
+      --orange-soft:rgba(255,177,94,.12);
+      --red:#ff7f92;
+      --red-soft:rgba(255,127,146,.12);
+      --green:#62d996;
+      --green-soft:rgba(98,217,150,.12);
+      --shadow:0 12px 34px rgba(0,0,0,.20);
+      background:#0b0e12;
+    }
+    body.dark .shell{background:#0f1318;box-shadow:none}
+    body.dark .sidebar,
+    body.dark .card,
+    body.dark .login-card,
+    body.dark .control,
+    body.dark .icon-btn,
+    body.dark .form-control,
+    body.dark .btn-secondary{background:var(--card);color:var(--text)}
+    body.dark .sidebar-note{background:#171c23;border-color:var(--line)}
+    body.dark .goal{background:radial-gradient(circle at 80% 30%,rgba(209,250,32,.12),transparent 28%),var(--card)}
+    body.dark th{background:#191f27;color:#9ba3ad}
+    body.dark td{color:#c9d0d8}
+    body.dark .strong{color:#f2f4f6}
+    body.dark .table-wrap{border-color:var(--line)}
+    body.dark .annual-note{background:#181711;border-color:#39351f;color:#c7bc8d}
+    body.dark .annual-note strong{color:#ece2b8}
+    body.dark .tax-highlight{background:linear-gradient(135deg,#151a21,#182010);border-color:#303b1f}
+    body.dark .goal-score::before{background:var(--card)}
+    body.dark .progress{background:#2a3020}
+    body.dark .nav-btn:hover{background:#171c22;color:#f2f4f6}
+    body.dark .field input{background:#11161c;color:var(--text);border-color:var(--line)}
+    body.dark .field input:focus{background:#141a21}
+
     /* LOGIN */
     .login-shell {
       min-height:100vh;
@@ -419,6 +468,46 @@
     }
     .annual-table-card{padding:18px}
 
+
+    .settings-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:90;
+      opacity:0;pointer-events:none;transition:.2s;
+    }
+    .settings-backdrop.open{opacity:1;pointer-events:auto}
+    .settings-drawer{
+      position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);
+      background:var(--card);border-left:1px solid var(--line);z-index:100;
+      transform:translateX(105%);transition:.24s ease;
+      box-shadow:-25px 0 60px rgba(0,0,0,.12);
+      display:flex;flex-direction:column;
+    }
+    .settings-drawer.open{transform:translateX(0)}
+    .drawer-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px;border-bottom:1px solid var(--line);
+    }
+    .drawer-title{font-size:16px;font-weight:850;letter-spacing:-.02em}
+    .drawer-sub{font-size:11px;color:var(--muted);margin-top:3px}
+    .drawer-body{padding:20px;overflow:auto;flex:1}
+    .drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .drawer-section{margin-bottom:20px}
+    .drawer-section-title{font-size:11px;font-weight:850;margin-bottom:9px;color:#717780}
+    .goal-list{display:grid;gap:8px}
+    .goal-row-item{
+      display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center;
+    }
+    .goal-row-item label{font-size:11px;color:var(--muted)}
+    .goal-row-item input{
+      width:100%;border:1px solid var(--line);background:var(--card-soft);color:var(--text);
+      border-radius:10px;padding:9px 10px;outline:none;
+    }
+    .drawer-actions{padding:16px 20px;border-top:1px solid var(--line);display:flex;gap:9px}
+    .drawer-actions button{flex:1}
+    .theme-toggle{
+      display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);
+      border-radius:11px;background:var(--card);color:var(--text);
+    }
+
     /* MOBILE */
     .mobile-menu { display:none; }
     @media (max-width:1100px) {
@@ -502,6 +591,8 @@
       <div class="top-controls">
         <select id="monthFilter" class="control"></select>
         <select id="yearFilter" class="control"></select>
+        <button id="themeToggle" class="theme-toggle" title="Alternar tema"><i data-lucide="moon"></i><span id="themeLabel">Escuro</span></button>
+        <button id="goalSettingsBtn" class="icon-btn" title="Ajustar metas"><i data-lucide="sliders-horizontal"></i></button>
         <button id="refreshBtn" class="icon-btn" title="Atualizar"><i data-lucide="refresh-cw"></i></button>
       </div>
     </header>
@@ -831,13 +922,14 @@
 <script>
 const SUPABASE_URL = "https://tukdayxfwzajngzddapa.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Exdmo6MHcWct72Nk2FPAQw_y0ViL6Hv";
-const MONTHLY_GOAL = 10000;
+const DEFAULT_MONTHLY_GOAL = 5000;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const state = {
   receitas:[], despesas:[], clientes:[], planos:[], charts:{},
-  selectedMonth:null, selectedYear:null, view:"overview", refreshTimer:null
+  selectedMonth:null, selectedYear:null, view:"overview", refreshTimer:null,
+  metasMensais:[]
 };
 const $ = id => document.getElementById(id);
 const money = v => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
@@ -867,6 +959,48 @@ async function logout(){
   setViewLogged(false);
 }
 
+
+function getMonthlyGoal(ano=state.selectedYear,mes=state.selectedMonth){
+  const row=state.metasMensais.find(m=>Number(m.ano)===Number(ano)&&Number(m.mes)===Number(mes));
+  return row?Number(row.valor||0):DEFAULT_MONTHLY_GOAL;
+}
+
+function animateNumber(id,toValue,formatter=money,duration=850){
+  const el=$(id);
+  if(!el)return;
+  const start=performance.now();
+  const from=0;
+  const to=Number(toValue||0);
+  function frame(now){
+    const p=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-p,3);
+    el.textContent=formatter(from+(to-from)*eased);
+    if(p<1)requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function chartAnimOptions(){
+  return {
+    animation:{duration:1000,easing:"easeOutQuart"},
+    transitions:{active:{animation:{duration:300}}}
+  };
+}
+
+function applyTheme(theme){
+  const dark=theme==="dark";
+  document.body.classList.toggle("dark",dark);
+  localStorage.setItem("britu_theme",dark?"dark":"light");
+  setText("themeLabel",dark?"Claro":"Escuro");
+  $("themeToggle").innerHTML=dark?'<i data-lucide="sun"></i><span id="themeLabel">Claro</span>':'<i data-lucide="moon"></i><span id="themeLabel">Escuro</span>';
+  lucide.createIcons();
+  renderAll();
+}
+
+function toggleTheme(){
+  applyTheme(document.body.classList.contains("dark")?"light":"dark");
+}
+
 function filteredReceitas(){
   return state.receitas.filter(r=>Number(r.ano)===Number(state.selectedYear)&&Number(r.mes)===Number(state.selectedMonth));
 }
@@ -878,18 +1012,20 @@ function expenseTotals(){
 
 async function loadAllData(){
   try{
-    const [rr,dr,cr,pr]=await Promise.all([
+    const [rr,dr,cr,pr,gr]=await Promise.all([
       sb.from("agencia_receitas").select("*").order("ano",{ascending:true}).order("mes",{ascending:true}),
       sb.from("agencia_despesas").select("*").order("id",{ascending:true}),
       sb.from("agencia_clientes").select("*").order("id",{ascending:true}),
-      sb.from("agencia_planos").select("*").order("id",{ascending:true})
+      sb.from("agencia_planos").select("*").order("id",{ascending:true}),
+      sb.from("agencia_metas_mensais").select("*").order("ano",{ascending:true}).order("mes",{ascending:true})
     ]);
-    const error=[rr,dr,cr,pr].find(r=>r.error)?.error;
+    const error=[rr,dr,cr,pr,gr].find(r=>r.error)?.error;
     if(error)throw error;
     state.receitas=rr.data||[];
     state.despesas=dr.data||[];
     state.clientes=cr.data||[];
     state.planos=pr.data||[];
+    state.metasMensais=gr.data||[];
     prepareFilters();
     renderAll();
     setText("lastUpdate","Atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
@@ -908,14 +1044,16 @@ function prepareFilters(){
     const latest=combos[combos.length-1];state.selectedYear=latest.ano;state.selectedMonth=latest.mes;
   }
 
-  const years=[...new Set(combos.map(x=>x.ano))];
+  const years=[];
+  for(let y=2025;y<=2050;y++)years.push(y);
   $("yearFilter").innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");
-  if(years.length&&!years.includes(Number(state.selectedYear)))state.selectedYear=years[years.length-1];
+  if(!state.selectedYear)state.selectedYear=2025;
   $("yearFilter").value=state.selectedYear;
 
-  const months=combos.filter(x=>x.ano===Number(state.selectedYear)).map(x=>x.mes);
+  let months=combos.filter(x=>x.ano===Number(state.selectedYear)).map(x=>x.mes);
+  if(!months.length)months=Array.from({length:12},(_,i)=>i+1);
   $("monthFilter").innerHTML=months.map(m=>`<option value="${m}">${MONTH_NAMES[m-1]}</option>`).join("");
-  if(months.length&&!months.includes(Number(state.selectedMonth)))state.selectedMonth=months[months.length-1];
+  if(!months.includes(Number(state.selectedMonth)))state.selectedMonth=months[months.length-1];
   $("monthFilter").value=state.selectedMonth;
 }
 
@@ -939,26 +1077,29 @@ function renderOverview(){
   const recurring=receitas.filter(r=>norm(r.tipo)==="recorrente").reduce((s,r)=>s+Number(r.valor||0),0);
   const activeClients=state.clientes.filter(c=>norm(c.status)==="ativo").length;
   const ticket=receitas.length?revenue/receitas.length:0;
-  const goalPct=revenue/MONTHLY_GOAL*100;
-  const remaining=Math.max(0,MONTHLY_GOAL-revenue);
+  const monthlyGoal=getMonthlyGoal();
+  const goalPct=monthlyGoal?revenue/monthlyGoal*100:0;
+  const remaining=Math.max(0,monthlyGoal-revenue);
 
-  setText("goalRevenue",money(revenue));
+  animateNumber("goalRevenue",revenue,money,900);
   setText("goalPercent",pct(goalPct));
-  setText("goalRemaining",remaining>0?`Faltam ${money(remaining)}`:`Meta superada em ${money(revenue-MONTHLY_GOAL)}`);
+  setText("goalRemaining",remaining>0?`Faltam ${money(remaining)}`:`Meta superada em ${money(revenue-monthlyGoal)}`);
+  const totalLabel=document.querySelector(".goal-total");
+  if(totalLabel) totalLabel.textContent=`de ${money(monthlyGoal)}`;
   setText("goalStatus",goalPct>=100?"Meta atingida":goalPct>=75?"Reta final":goalPct>=50?"Mais da metade":goalPct>=25?"Em evolução":"Início da meta");
   $("goalFill").style.width=Math.min(Math.max(goalPct,0),100)+"%";
   $("goalScore").style.background=`conic-gradient(var(--accent-dark) ${Math.min(Math.max(goalPct,0),100)*3.6}deg,#edf0e6 0deg)`;
 
-  setText("kpiRevenue",money(revenue));
+  animateNumber("kpiRevenue",revenue,money);
   setText("kpiRevenueSub",`${MONTH_NAMES[state.selectedMonth-1]} de ${state.selectedYear} · ${receitas.length} lançamentos`);
-  setText("kpiProfit",money(profit));
-  setText("kpiExpenses",money(exp.total));
+  animateNumber("kpiProfit",profit,money);
+  animateNumber("kpiExpenses",exp.total,money);
   setText("kpiExpensesSub",`${money(exp.fixed)} fixas · ${money(exp.operational)} operação`);
-  setText("kpiMargin",pct(margin));
-  setText("insightRecurring",money(recurring));
+  animateNumber("kpiMargin",margin,pct);
+  animateNumber("insightRecurring",recurring,money);
   setText("insightRecurringPct",revenue?pct(recurring/revenue*100)+" do mês":"0% do mês");
-  setText("insightClients",num(activeClients));
-  setText("insightTicket",money(ticket));
+  animateNumber("insightClients",activeClients,v=>num(Math.round(v)));
+  animateNumber("insightTicket",ticket,money);
   setText("insightEntries",`${receitas.length} lançamentos`);
 
   const trendMap=new Map();
@@ -975,7 +1116,7 @@ function renderOverview(){
       labels:trend.map(([k])=>{const [y,m]=k.split("-").map(Number);return `${MONTH_NAMES[m-1].slice(0,3)}/${String(y).slice(-2)}`;}),
       datasets:[{data:trend.map(([,v])=>v),borderColor:"#8b7df4",backgroundColor:"rgba(139,125,244,.10)",fill:true,tension:.38,borderWidth:2.2,pointRadius:3,pointBackgroundColor:"#8b7df4"}]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
+    options:{...chartAnimOptions(),responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
   });
 
   const byClient=new Map();
@@ -985,7 +1126,7 @@ function renderOverview(){
   state.charts.clients=new Chart($("clientsChart"),{
     type:"bar",
     data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:"#d1fa20",borderRadius:7,borderSkipped:false}]},
-    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{y:{grid:{display:false}},x:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
+    options:{...chartAnimOptions(),indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{y:{grid:{display:false}},x:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
   });
 
   renderRevenueTable(receitas);
@@ -999,9 +1140,9 @@ function renderRevenueTable(receitas){
 function renderExpenses(){
   const exp=expenseTotals();
   const revenue=filteredReceitas().reduce((s,r)=>s+Number(r.valor||0),0);
-  setText("expTotal",money(exp.total));
-  setText("expFixed",money(exp.fixed));
-  setText("expOperational",money(exp.operational));
+  animateNumber("expTotal",exp.total,money);
+  animateNumber("expFixed",exp.fixed,money);
+  animateNumber("expOperational",exp.operational,money);
   setText("expFixedPct",exp.total?pct(exp.fixed/exp.total*100)+" das despesas":"0% das despesas");
   setText("expOperationalPct",exp.total?pct(exp.operational/exp.total*100)+" das despesas":"0% das despesas");
 
@@ -1009,14 +1150,14 @@ function renderExpenses(){
   state.charts.expense=new Chart($("expenseChart"),{
     type:"doughnut",
     data:{labels:["Despesas fixas","Custo operacional"],datasets:[{data:[exp.fixed,exp.operational],backgroundColor:["#8b7df4","#5b8def"],borderColor:"#fff",borderWidth:5,hoverOffset:5}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"67%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}}
+    options:{...chartAnimOptions(),responsive:true,maintainAspectRatio:false,cutout:"67%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}}
   });
 
   destroyChart("expenseImpact");
   state.charts.expenseImpact=new Chart($("expenseImpactChart"),{
     type:"bar",
     data:{labels:["Faturamento","Despesas","Saldo estimado"],datasets:[{data:[revenue,exp.total,revenue-exp.total],backgroundColor:["#d1fa20","#f59e42","#31a66a"],borderRadius:9,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
+    options:{...chartAnimOptions(),responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
   });
 
   const rows=[...state.despesas].sort((a,b)=>norm(a.tipo).localeCompare(norm(b.tipo))||Number(b.valor)-Number(a.valor));
@@ -1030,9 +1171,9 @@ function renderRecurring(){
   const recurring=recurringRows.reduce((s,r)=>s+Number(r.valor||0),0);
   const avulso=Math.max(0,revenue-recurring);
 
-  setText("recTotal",money(recurring));
-  setText("recShare",revenue?pct(recurring/revenue*100):"0%");
-  setText("recCount",num(recurringRows.length));
+  animateNumber("recTotal",recurring,money);
+  animateNumber("recShare",revenue?recurring/revenue*100:0,pct);
+  animateNumber("recCount",recurringRows.length,v=>num(Math.round(v)));
 
   const map=new Map();
   state.receitas.filter(r=>norm(r.tipo)==="recorrente").forEach(r=>{
@@ -1045,14 +1186,14 @@ function renderRecurring(){
   state.charts.recurring=new Chart($("recurringChart"),{
     type:"line",
     data:{labels:trend.map(([k])=>{const [y,m]=k.split("-").map(Number);return `${MONTH_NAMES[m-1].slice(0,3)}/${String(y).slice(-2)}`;}),datasets:[{data:trend.map(([,v])=>v),borderColor:"#31a66a",backgroundColor:"rgba(49,166,106,.10)",fill:true,tension:.38,borderWidth:2.2,pointRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
+    options:{...chartAnimOptions(),responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}}}
   });
 
   destroyChart("recurringMix");
   state.charts.recurringMix=new Chart($("recurringMixChart"),{
     type:"doughnut",
     data:{labels:["Recorrente","Avulsa / não classificada"],datasets:[{data:[recurring,avulso],backgroundColor:["#31a66a","#d9dbe2"],borderColor:"#fff",borderWidth:5}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}}
+    options:{...chartAnimOptions(),responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}}
   });
 
   $("recurringTable").innerHTML=recurringRows.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Status</th><th>Valor</th></tr></thead><tbody>${recurringRows.sort((a,b)=>(b.data||"").localeCompare(a.data||"")).map(r=>`<tr><td>${r.data?new Date(r.data+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td><td class="strong">${esc(r.empresa||"—")}</td><td><span class="pill rec">${esc(r.status||"Receita recorrente")}</span></td><td class="strong">${money(r.valor)}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nenhuma receita marcada como “Recorrente” neste mês. Preencha a coluna TIPO na planilha para acompanhar este indicador.</div>';
@@ -1064,9 +1205,9 @@ function renderClientsManagement(){
   const ativos=state.clientes.filter(c=>norm(c.status)==="ativo");
   const mrr=ativos.reduce((s,c)=>s+Number(c.valor||0),0);
 
-  setText("clientTotal",num(total));
-  setText("clientActive",num(ativos.length));
-  setText("clientMRR",money(mrr));
+  animateNumber("clientTotal",total,v=>num(Math.round(v)));
+  animateNumber("clientActive",ativos.length,v=>num(Math.round(v)));
+  animateNumber("clientMRR",mrr,money);
 
   const rows=[...state.clientes].sort((a,b)=>(a.empresa||"").localeCompare(b.empresa||"","pt-BR"));
   $("clientsManagementTable").innerHTML=rows.length?`
@@ -1173,10 +1314,10 @@ function renderAnnualSummary(){
   const annualProfit=annualRevenue-annualExpenses;
   const annualAvg=annualRevenue/12;
 
-  setText("annualRevenue",money(annualRevenue));
-  setText("annualAvg",money(annualAvg));
-  setText("annualExpenses",money(annualExpenses));
-  setText("annualProfit",money(annualProfit));
+  animateNumber("annualRevenue",annualRevenue,money);
+  animateNumber("annualAvg",annualAvg,money);
+  animateNumber("annualExpenses",annualExpenses,money);
+  animateNumber("annualProfit",annualProfit,money);
 
   const recurring=yearRows.filter(r=>norm(r.tipo)==="recorrente").reduce((s,r)=>s+Number(r.valor||0),0);
   const nonRecurring=Math.max(0,annualRevenue-recurring);
@@ -1268,6 +1409,80 @@ function renderAnnualSummary(){
     </div>`:'<div class="empty">Nenhuma receita registrada neste ano.</div>';
 }
 
+
+function populateGoalYears(){
+  const sel=$("goalYearSelect");
+  sel.innerHTML="";
+  for(let y=2025;y<=2050;y++){
+    const o=document.createElement("option");
+    o.value=y;o.textContent=y;
+    sel.appendChild(o);
+  }
+  sel.value=state.selectedYear||2025;
+}
+
+function renderGoalInputs(){
+  const year=Number($("goalYearSelect").value||state.selectedYear||2025);
+  const container=$("monthlyGoalInputs");
+  container.innerHTML=MONTH_NAMES.map((name,i)=>{
+    const value=getMonthlyGoal(year,i+1);
+    return `<div class="goal-row-item">
+      <label>${name}</label>
+      <input class="goal-input" data-month="${i+1}" type="number" min="0" step="100" value="${value}">
+    </div>`;
+  }).join("");
+}
+
+function openGoalSettings(){
+  populateGoalYears();
+  renderGoalInputs();
+  $("settingsBackdrop").classList.add("open");
+  $("settingsDrawer").classList.add("open");
+  lucide.createIcons();
+}
+
+function closeGoalSettings(){
+  $("settingsBackdrop").classList.remove("open");
+  $("settingsDrawer").classList.remove("open");
+  $("goalSettingsMsg").textContent="";
+  $("goalSettingsMsg").className="form-message";
+}
+
+async function saveGoalSettings(){
+  const year=Number($("goalYearSelect").value);
+  const inputs=[...document.querySelectorAll(".goal-input")];
+  const btn=$("saveGoalSettingsBtn");
+  const msg=$("goalSettingsMsg");
+  btn.disabled=true;btn.textContent="Salvando...";
+  try{
+    for(const input of inputs){
+      const month=Number(input.dataset.month);
+      const value=Number(input.value||0);
+      const {error}=await sb.rpc("agencia_definir_meta_mensal",{
+        p_ano:year,p_mes:month,p_valor:value
+      });
+      if(error)throw error;
+    }
+    const {data,error}=await sb.from("agencia_metas_mensais").select("*").order("ano",{ascending:true}).order("mes",{ascending:true});
+    if(error)throw error;
+    state.metasMensais=data||[];
+    msg.textContent="Metas salvas com sucesso.";
+    msg.className="form-message ok";
+    renderAll();
+    setTimeout(closeGoalSettings,700);
+  }catch(err){
+    msg.textContent=err.message||"Não foi possível salvar as metas.";
+    msg.className="form-message err";
+  }finally{
+    btn.disabled=false;btn.textContent="Salvar metas";
+  }
+}
+
+function applyYearDefaultGoal(){
+  const value=Number($("yearDefaultGoal").value||0);
+  document.querySelectorAll(".goal-input").forEach(i=>i.value=value);
+}
+
 function changeView(view){
   state.view=view;
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
@@ -1295,9 +1510,19 @@ $("clientClearBtn").addEventListener("click",clearClientForm);
 $("mobileMenu").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
 $("logoutBtn").addEventListener("click",logout);
 $("refreshBtn").addEventListener("click",loadAllData);
+$("themeToggle").addEventListener("click",toggleTheme);
+$("goalSettingsBtn").addEventListener("click",openGoalSettings);
+$("closeSettingsBtn").addEventListener("click",closeGoalSettings);
+$("cancelGoalSettingsBtn").addEventListener("click",closeGoalSettings);
+$("settingsBackdrop").addEventListener("click",closeGoalSettings);
+$("goalYearSelect").addEventListener("change",renderGoalInputs);
+$("applyYearGoalBtn").addEventListener("click",applyYearDefaultGoal);
+$("saveGoalSettingsBtn").addEventListener("click",saveGoalSettings);
+
 $("yearFilter").addEventListener("change",()=>{
   state.selectedYear=Number($("yearFilter").value);
-  const months=[...new Set(state.receitas.filter(r=>Number(r.ano)===state.selectedYear).map(r=>Number(r.mes)))].sort((a,b)=>a-b);
+  let months=[...new Set(state.receitas.filter(r=>Number(r.ano)===state.selectedYear).map(r=>Number(r.mes)))].sort((a,b)=>a-b);
+  if(!months.length)months=Array.from({length:12},(_,i)=>i+1);
   $("monthFilter").innerHTML=months.map(m=>`<option value="${m}">${MONTH_NAMES[m-1]}</option>`).join("");
   state.selectedMonth=months[months.length-1]||1;$("monthFilter").value=state.selectedMonth;renderAll();
 });
@@ -1313,6 +1538,7 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 
 async function boot(){
+  applyTheme(localStorage.getItem("britu_theme")||"light");
   const {data:{session}}=await sb.auth.getSession();
   if(session){setViewLogged(true);await loadAllData();state.refreshTimer=setInterval(loadAllData,60000);}
   else setViewLogged(false);
@@ -1320,5 +1546,44 @@ async function boot(){
 }
 boot();
 </script>
+
+<div id="settingsBackdrop" class="settings-backdrop"></div>
+<aside id="settingsDrawer" class="settings-drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title">Ajuste de metas</div>
+      <div class="drawer-sub">Defina metas mensais de 2025 até 2050</div>
+    </div>
+    <button id="closeSettingsBtn" class="icon-btn"><i data-lucide="x"></i></button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="drawer-section-title">ANO</div>
+      <select id="goalYearSelect" class="form-control"></select>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">META PADRÃO PARA O ANO</div>
+      <div class="drawer-grid">
+        <input id="yearDefaultGoal" class="form-control" type="number" min="0" step="100" value="5000">
+        <button id="applyYearGoalBtn" class="btn-secondary" type="button">Aplicar aos 12 meses</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">METAS MENSAIS</div>
+      <div id="monthlyGoalInputs" class="goal-list"></div>
+    </div>
+
+    <div id="goalSettingsMsg" class="form-message"></div>
+  </div>
+
+  <div class="drawer-actions">
+    <button id="cancelGoalSettingsBtn" class="btn-secondary" type="button">Cancelar</button>
+    <button id="saveGoalSettingsBtn" class="btn-save" type="button">Salvar metas</button>
+  </div>
+</aside>
+
 </body>
 </html>
