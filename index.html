@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BRITU — Dashboard Financeiro</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #080b0f;
+      --panel: #0f141b;
+      --panel-2: #151b23;
+      --line: #232b35;
+      --text: #f5f7fa;
+      --muted: #8b95a3;
+      --accent: #d1fa20;
+      --accent-soft: rgba(209,250,32,.12);
+      --danger: #ff5d73;
+      --warning: #ffca57;
+      --success: #7fe36a;
+      --blue: #62a8ff;
+      --shadow: 0 18px 60px rgba(0,0,0,.28);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+
+    body {
+      background:
+        radial-gradient(circle at 15% 0%, rgba(209,250,32,.055), transparent 28%),
+        radial-gradient(circle at 95% 10%, rgba(98,168,255,.04), transparent 26%),
+        var(--bg);
+    }
+
+    .hidden { display:none !important; }
+
+    /* LOGIN */
+    .login-shell {
+      min-height: 100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+    .login-card {
+      width:min(430px, 100%);
+      background:linear-gradient(180deg, rgba(21,27,35,.96), rgba(12,16,22,.98));
+      border:1px solid var(--line);
+      border-radius:26px;
+      padding:34px;
+      box-shadow:var(--shadow);
+    }
+    .brand-lockup {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:28px;
+    }
+    .brand-mark {
+      width:42px;
+      height:42px;
+      border-radius:13px;
+      background:var(--accent);
+      color:#080b0f;
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      letter-spacing:-1px;
+      box-shadow:0 10px 30px rgba(209,250,32,.15);
+    }
+    .brand-name { font-weight:800; letter-spacing:.08em; font-size:18px; }
+    .brand-sub { color:var(--muted); font-size:12px; margin-top:2px; }
+    .login-card h1 { margin:0 0 8px; font-size:27px; letter-spacing:-.04em; }
+    .login-card p { margin:0 0 26px; color:var(--muted); line-height:1.55; }
+    .field { margin-bottom:14px; }
+    .field label { display:block; color:#b9c0ca; font-size:12px; font-weight:700; margin-bottom:7px; }
+    .field input {
+      width:100%;
+      background:#0a0e13;
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:13px;
+      padding:13px 14px;
+      outline:none;
+      transition:.2s;
+    }
+    .field input:focus { border-color:rgba(209,250,32,.5); box-shadow:0 0 0 3px rgba(209,250,32,.08); }
+    .primary {
+      width:100%;
+      border:0;
+      border-radius:13px;
+      padding:14px 16px;
+      font-weight:800;
+      cursor:pointer;
+      background:var(--accent);
+      color:#090b0e;
+      margin-top:4px;
+    }
+    .primary:disabled { opacity:.55; cursor:not-allowed; }
+    .login-msg {
+      margin-top:14px;
+      min-height:20px;
+      font-size:13px;
+      color:var(--danger);
+    }
+
+    /* APP */
+    .app { min-height:100vh; }
+    .topbar {
+      position:sticky;
+      top:0;
+      z-index:30;
+      backdrop-filter:blur(16px);
+      background:rgba(8,11,15,.82);
+      border-bottom:1px solid rgba(255,255,255,.05);
+    }
+    .topbar-inner {
+      max-width:1520px;
+      margin:auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:14px 24px;
+    }
+    .topbar .brand-lockup { margin:0; }
+    .top-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .control {
+      background:var(--panel);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:11px;
+      padding:9px 11px;
+      outline:none;
+    }
+    .ghost {
+      background:var(--panel);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:11px;
+      padding:9px 12px;
+      cursor:pointer;
+    }
+    .ghost:hover { border-color:#3a4552; }
+    .logout { color:#ff8797; }
+
+    .wrap {
+      max-width:1520px;
+      margin:auto;
+      padding:26px 24px 48px;
+    }
+
+    .hero-row {
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+    .eyebrow {
+      color:var(--accent);
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:11px;
+      font-weight:800;
+      margin-bottom:6px;
+    }
+    .hero-row h1 {
+      margin:0;
+      font-size:clamp(28px,4vw,46px);
+      line-height:1;
+      letter-spacing:-.055em;
+    }
+    .hero-row p {
+      margin:9px 0 0;
+      color:var(--muted);
+      max-width:700px;
+      line-height:1.55;
+    }
+    .updated {
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    .goal-card {
+      background:
+        linear-gradient(130deg, rgba(209,250,32,.15), rgba(209,250,32,.02) 42%),
+        var(--panel);
+      border:1px solid rgba(209,250,32,.22);
+      border-radius:22px;
+      padding:22px;
+      margin-bottom:18px;
+      box-shadow:var(--shadow);
+    }
+    .goal-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:18px;
+      margin-bottom:16px;
+    }
+    .goal-label { color:#cfd6df; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; }
+    .goal-value { font-size:clamp(26px,3vw,42px); font-weight:900; letter-spacing:-.05em; margin-top:5px; }
+    .goal-right { text-align:right; }
+    .goal-percent { color:var(--accent); font-size:30px; font-weight:900; letter-spacing:-.04em; }
+    .goal-small { color:var(--muted); font-size:12px; margin-top:3px; }
+    .track {
+      height:11px;
+      border-radius:999px;
+      background:#252c35;
+      overflow:hidden;
+    }
+    .fill {
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg, #a6d60d, var(--accent));
+      box-shadow:0 0 18px rgba(209,250,32,.25);
+      transition:width .55s ease;
+    }
+    .goal-foot {
+      display:flex;
+      justify-content:space-between;
+      margin-top:9px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .kpis {
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .card {
+      background:linear-gradient(180deg, rgba(19,25,33,.98), rgba(13,18,24,.98));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      min-width:0;
+      box-shadow:0 10px 32px rgba(0,0,0,.16);
+    }
+    .kpi-label {
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .kpi-value {
+      margin-top:10px;
+      font-size:clamp(23px,2.5vw,34px);
+      font-weight:900;
+      letter-spacing:-.045em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .kpi-sub {
+      color:var(--muted);
+      font-size:12px;
+      margin-top:7px;
+      min-height:18px;
+    }
+    .positive { color:var(--success); }
+    .negative { color:var(--danger); }
+    .accent { color:var(--accent); }
+
+    .grid-2 {
+      display:grid;
+      grid-template-columns:1.4fr 1fr;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .grid-2.equal { grid-template-columns:1fr 1fr; }
+    .panel {
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      min-width:0;
+    }
+    .panel-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .panel-title { font-weight:800; letter-spacing:-.02em; }
+    .panel-sub { color:var(--muted); font-size:12px; margin-top:3px; }
+    .chart-box { height:310px; position:relative; }
+    .chart-box.sm { height:280px; }
+
+    .table-wrap {
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.045);
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:720px;
+    }
+    th, td {
+      padding:12px 13px;
+      text-align:left;
+      border-bottom:1px solid rgba(255,255,255,.055);
+      font-size:13px;
+    }
+    th {
+      position:sticky;
+      top:0;
+      background:#131921;
+      color:#aeb7c3;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+      font-size:10px;
+    }
+    tr:last-child td { border-bottom:0; }
+    td { color:#e9edf2; }
+    .money { font-weight:800; }
+    .pill {
+      display:inline-flex;
+      align-items:center;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:11px;
+      color:#cbd2da;
+      background:#11171e;
+    }
+    .empty {
+      padding:30px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .notice {
+      display:none;
+      margin-bottom:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,202,87,.25);
+      background:rgba(255,202,87,.07);
+      color:#f7d989;
+      font-size:13px;
+    }
+
+    @media (max-width: 1050px) {
+      .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .grid-2, .grid-2.equal { grid-template-columns:1fr; }
+    }
+    @media (max-width: 680px) {
+      .topbar-inner, .wrap { padding-left:14px; padding-right:14px; }
+      .topbar-inner { align-items:flex-start; }
+      .top-actions { justify-content:flex-end; }
+      .brand-sub { display:none; }
+      .hero-row { align-items:flex-start; flex-direction:column; }
+      .kpis { grid-template-columns:1fr; }
+      .goal-top { align-items:flex-start; flex-direction:column; }
+      .goal-right { text-align:left; }
+      .chart-box { height:270px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="brand-lockup">
+        <div class="brand-mark">B</div>
+        <div>
+          <div class="brand-name">BRITU</div>
+          <div class="brand-sub">Dashboard Financeiro</div>
+        </div>
+      </div>
+
+      <h1>Acesse seu painel</h1>
+      <p>Entre com um usuário cadastrado no Supabase da agência.</p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label>E-mail</label>
+          <input id="email" type="email" autocomplete="username" required placeholder="seu@email.com" />
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input id="password" type="password" autocomplete="current-password" required placeholder="Sua senha" />
+        </div>
+        <button id="loginBtn" class="primary" type="submit">Entrar</button>
+      </form>
+      <div id="loginMsg" class="login-msg"></div>
+    </div>
+  </section>
+
+  <main id="appView" class="app hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark">B</div>
+          <div>
+            <div class="brand-name">BRITU</div>
+            <div class="brand-sub">Financeiro & Gestão</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <select id="monthFilter" class="control"></select>
+          <select id="yearFilter" class="control"></select>
+          <button id="refreshBtn" class="ghost">Atualizar</button>
+          <button id="logoutBtn" class="ghost logout">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="hero-row">
+        <div>
+          <div class="eyebrow">Visão financeira</div>
+          <h1>Dashboard da Agência</h1>
+          <p>Acompanhe faturamento, lucro estimado, despesas, recorrência, clientes, meta mensal e evolução financeira.</p>
+        </div>
+        <div id="lastUpdate" class="updated">—</div>
+      </div>
+
+      <div id="dataNotice" class="notice"></div>
+
+      <section class="goal-card">
+        <div class="goal-top">
+          <div>
+            <div class="goal-label">Meta mensal</div>
+            <div id="goalRevenue" class="goal-value">R$ 0,00 <span style="color:var(--muted);font-size:.48em;font-weight:700">/ R$ 10.000</span></div>
+          </div>
+          <div class="goal-right">
+            <div id="goalPercent" class="goal-percent">0%</div>
+            <div id="goalRemaining" class="goal-small">Faltam R$ 10.000,00</div>
+          </div>
+        </div>
+        <div class="track"><div id="goalFill" class="fill"></div></div>
+        <div class="goal-foot">
+          <span id="goalStatus">Início da meta</span>
+          <span>Meta fixa: R$ 10.000/mês</span>
+        </div>
+      </section>
+
+      <section class="kpis">
+        <article class="card">
+          <div class="kpi-label">Faturamento</div>
+          <div id="kpiRevenue" class="kpi-value">R$ 0,00</div>
+          <div id="kpiRevenueSub" class="kpi-sub">Período selecionado</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Lucro estimado</div>
+          <div id="kpiProfit" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Faturamento − despesas cadastradas</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Despesas mensais</div>
+          <div id="kpiExpenses" class="kpi-value">R$ 0,00</div>
+          <div id="kpiExpensesSub" class="kpi-sub">Fixas + custos operacionais</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Margem estimada</div>
+          <div id="kpiMargin" class="kpi-value">0%</div>
+          <div class="kpi-sub">Lucro / faturamento</div>
+        </article>
+
+        <article class="card">
+          <div class="kpi-label">Receita recorrente</div>
+          <div id="kpiRecurring" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Registros marcados como “Recorrente”</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Clientes ativos</div>
+          <div id="kpiClients" class="kpi-value">0</div>
+          <div class="kpi-sub">Clientes com status “Ativo”</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Dívidas cadastradas</div>
+          <div id="kpiDebt" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Saldo da aba DÉBITOS</div>
+        </article>
+        <article class="card">
+          <div class="kpi-label">Ticket médio</div>
+          <div id="kpiTicket" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Faturamento / lançamentos do mês</div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Evolução do faturamento</div>
+              <div class="panel-sub">Histórico mensal disponível no Supabase</div>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Despesas por tipo</div>
+              <div class="panel-sub">Estrutura mensal cadastrada</div>
+            </div>
+          </div>
+          <div class="chart-box sm"><canvas id="expenseChart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid-2 equal">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Maiores clientes no mês</div>
+              <div class="panel-sub">Faturamento agrupado por empresa</div>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="clientsChart"></canvas></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Receita x despesas x lucro</div>
+              <div class="panel-sub">Comparativo do período selecionado</div>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="financeChart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid-2 equal">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Últimos lançamentos</div>
+              <div class="panel-sub">Receitas do mês selecionado</div>
+            </div>
+          </div>
+          <div id="revenueTable"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Clientes cadastrados</div>
+              <div class="panel-sub">Visão de contratos e mensalidades</div>
+            </div>
+          </div>
+          <div id="clientsTable"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+  const SUPABASE_URL = "https://tukdayxfwzajngzddapa.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_Exdmo6MHcWct72Nk2FPAQw_y0ViL6Hv";
+  const MONTHLY_GOAL = 10000;
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const MONTH_NAMES = [
+    "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+  ];
+
+  const state = {
+    receitas: [],
+    despesas: [],
+    clientes: [],
+    debitos: [],
+    metas: [],
+    planos: [],
+    charts: {},
+    selectedMonth: null,
+    selectedYear: null,
+    refreshTimer: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const money = (v) => new Intl.NumberFormat("pt-BR", { style:"currency", currency:"BRL" }).format(Number(v || 0));
+  const number = (v) => new Intl.NumberFormat("pt-BR").format(Number(v || 0));
+  const pct = (v) => `${Number(v || 0).toFixed(1).replace(".", ",")}%`;
+  const norm = (v) => String(v || "").trim().toLowerCase();
+
+  function esc(v) {
+    return String(v ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function setText(id, value) {
+    const el = $(id);
+    if (el) el.textContent = value;
+  }
+
+  function setView(loggedIn) {
+    $("loginView").classList.toggle("hidden", loggedIn);
+    $("appView").classList.toggle("hidden", !loggedIn);
+  }
+
+  async function login(email, password) {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    clearInterval(state.refreshTimer);
+    setView(false);
+  }
+
+  async function loadAllData() {
+    $("refreshBtn").disabled = true;
+    $("refreshBtn").textContent = "Atualizando...";
+
+    try {
+      const [
+        receitasR,
+        despesasR,
+        clientesR,
+        debitosR,
+        metasR,
+        planosR
+      ] = await Promise.all([
+        sb.from("agencia_receitas").select("*").order("ano", { ascending:true }).order("mes", { ascending:true }),
+        sb.from("agencia_despesas").select("*").order("id", { ascending:true }),
+        sb.from("agencia_clientes").select("*").order("id", { ascending:true }),
+        sb.from("agencia_debitos").select("*").order("id", { ascending:true }),
+        sb.from("agencia_metas").select("*").order("id", { ascending:true }),
+        sb.from("agencia_planos").select("*").order("plano", { ascending:true }).order("ordem", { ascending:true })
+      ]);
+
+      const results = [receitasR, despesasR, clientesR, debitosR, metasR, planosR];
+      const firstError = results.find(r => r.error)?.error;
+      if (firstError) throw firstError;
+
+      state.receitas = receitasR.data || [];
+      state.despesas = despesasR.data || [];
+      state.clientes = clientesR.data || [];
+      state.debitos = debitosR.data || [];
+      state.metas = metasR.data || [];
+      state.planos = planosR.data || [];
+
+      prepareFilters();
+      renderDashboard();
+
+      setText("lastUpdate", "Atualizado agora · " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"}));
+    } catch (err) {
+      console.error(err);
+      showNotice("Não foi possível carregar os dados: " + (err.message || err));
+    } finally {
+      $("refreshBtn").disabled = false;
+      $("refreshBtn").textContent = "Atualizar";
+    }
+  }
+
+  function showNotice(msg) {
+    const el = $("dataNotice");
+    el.style.display = "block";
+    el.textContent = msg;
+  }
+
+  function hideNotice() {
+    $("dataNotice").style.display = "none";
+  }
+
+  function prepareFilters() {
+    const combos = [...new Map(
+      state.receitas
+        .filter(r => r.ano && r.mes)
+        .map(r => [`${r.ano}-${String(r.mes).padStart(2,"0")}`, {ano:Number(r.ano), mes:Number(r.mes)}])
+    ).values()].sort((a,b) => a.ano-b.ano || a.mes-b.mes);
+
+    if (!combos.length) {
+      state.selectedYear = new Date().getFullYear();
+      state.selectedMonth = new Date().getMonth()+1;
+    } else if (!state.selectedYear || !state.selectedMonth) {
+      const latest = combos[combos.length - 1];
+      state.selectedYear = latest.ano;
+      state.selectedMonth = latest.mes;
+    }
+
+    const years = [...new Set(combos.map(x => x.ano))];
+    const y = $("yearFilter");
+    y.innerHTML = years.map(v => `<option value="${v}">${v}</option>`).join("");
+    if (!years.includes(state.selectedYear) && years.length) state.selectedYear = years[years.length-1];
+    y.value = state.selectedYear;
+
+    const availableMonths = combos.filter(x => x.ano === Number(state.selectedYear)).map(x => x.mes);
+    const m = $("monthFilter");
+    m.innerHTML = availableMonths.map(v => `<option value="${v}">${MONTH_NAMES[v-1]}</option>`).join("");
+    if (!availableMonths.includes(Number(state.selectedMonth)) && availableMonths.length) {
+      state.selectedMonth = availableMonths[availableMonths.length-1];
+    }
+    m.value = state.selectedMonth;
+  }
+
+  function filteredReceitas() {
+    return state.receitas.filter(r =>
+      Number(r.ano) === Number(state.selectedYear) &&
+      Number(r.mes) === Number(state.selectedMonth)
+    );
+  }
+
+  function renderDashboard() {
+    hideNotice();
+
+    const receitas = filteredReceitas();
+    const faturamento = receitas.reduce((s,r) => s + Number(r.valor || 0), 0);
+
+    const despesasFixas = state.despesas
+      .filter(d => norm(d.tipo) === "fixa")
+      .reduce((s,d) => s + Number(d.valor || 0), 0);
+
+    const despesasOperacionais = state.despesas
+      .filter(d => norm(d.tipo).includes("operacional"))
+      .reduce((s,d) => s + Number(d.valor || 0), 0);
+
+    const despesas = despesasFixas + despesasOperacionais;
+    const lucro = faturamento - despesas;
+    const margem = faturamento > 0 ? (lucro / faturamento) * 100 : 0;
+
+    const recorrente = receitas
+      .filter(r => norm(r.tipo) === "recorrente")
+      .reduce((s,r) => s + Number(r.valor || 0), 0);
+
+    const clientesAtivos = state.clientes.filter(c => norm(c.status) === "ativo").length;
+
+    const dividas = state.debitos
+      .filter(d => norm(d.status) !== "pago")
+      .reduce((s,d) => s + Number(d.valor || 0), 0);
+
+    const ticket = receitas.length ? faturamento / receitas.length : 0;
+
+    const goalPercentRaw = MONTHLY_GOAL > 0 ? (faturamento / MONTHLY_GOAL) * 100 : 0;
+    const goalPercent = Math.max(0, goalPercentRaw);
+    const remaining = Math.max(0, MONTHLY_GOAL - faturamento);
+
+    setText("goalRevenue", money(faturamento) + " / R$ 10.000,00");
+    setText("goalPercent", pct(goalPercent));
+    setText("goalRemaining", remaining > 0 ? `Faltam ${money(remaining)}` : `Meta superada em ${money(faturamento - MONTHLY_GOAL)}`);
+    $("goalFill").style.width = Math.min(goalPercent,100) + "%";
+    setText("goalStatus", goalPercent >= 100 ? "Meta atingida" : goalPercent >= 75 ? "Reta final" : goalPercent >= 50 ? "Mais da metade" : goalPercent >= 25 ? "Em evolução" : "Início da meta");
+
+    setText("kpiRevenue", money(faturamento));
+    setText("kpiProfit", money(lucro));
+    $("kpiProfit").className = "kpi-value " + (lucro >= 0 ? "positive" : "negative");
+    setText("kpiExpenses", money(despesas));
+    setText("kpiExpensesSub", `${money(despesasFixas)} fixas · ${money(despesasOperacionais)} operação`);
+    setText("kpiMargin", pct(margem));
+    $("kpiMargin").className = "kpi-value " + (margem >= 0 ? "positive" : "negative");
+    setText("kpiRecurring", money(recorrente));
+    setText("kpiClients", number(clientesAtivos));
+    setText("kpiDebt", money(dividas));
+    setText("kpiTicket", money(ticket));
+    setText("kpiRevenueSub", `${MONTH_NAMES[state.selectedMonth-1]} de ${state.selectedYear} · ${receitas.length} lançamentos`);
+
+    const blankTypes = receitas.filter(r => !r.tipo).length;
+    const blankStatuses = state.clientes.filter(c => !c.status).length;
+    const messages = [];
+    if (blankTypes) messages.push(`${blankTypes} receita(s) do mês ainda estão sem TIPO; a receita recorrente pode aparecer menor que o real.`);
+    if (blankStatuses) messages.push(`${blankStatuses} cliente(s) ainda estão sem STATUS; “clientes ativos” considera somente quem estiver marcado como Ativo.`);
+    if (messages.length) showNotice(messages.join(" "));
+
+    renderCharts(faturamento, despesas, lucro, despesasFixas, despesasOperacionais);
+    renderRevenueTable(receitas);
+    renderClientsTable();
+  }
+
+  function destroyChart(key) {
+    if (state.charts[key]) {
+      state.charts[key].destroy();
+      state.charts[key] = null;
+    }
+  }
+
+  function chartDefaults() {
+    Chart.defaults.color = "#99a3b0";
+    Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+  }
+
+  function renderCharts(faturamento, despesas, lucro, despesasFixas, despesasOperacionais) {
+    chartDefaults();
+
+    // Evolução mensal
+    const map = new Map();
+    state.receitas.forEach(r => {
+      const key = `${r.ano}-${String(r.mes).padStart(2,"0")}`;
+      map.set(key, (map.get(key) || 0) + Number(r.valor || 0));
+    });
+    const trend = [...map.entries()]
+      .sort((a,b) => a[0].localeCompare(b[0]))
+      .slice(-12);
+
+    destroyChart("revenue");
+    state.charts.revenue = new Chart($("revenueChart"), {
+      type:"line",
+      data:{
+        labels:trend.map(([k]) => {
+          const [y,m] = k.split("-").map(Number);
+          return `${MONTH_NAMES[m-1].slice(0,3)}/${String(y).slice(-2)}`;
+        }),
+        datasets:[{
+          label:"Faturamento",
+          data:trend.map(([,v]) => v),
+          borderColor:"#d1fa20",
+          backgroundColor:"rgba(209,250,32,.10)",
+          tension:.32,
+          pointRadius:3,
+          pointHoverRadius:5,
+          fill:true,
+          borderWidth:2.3
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>money(ctx.raw)}} },
+        scales:{
+          x:{ grid:{display:false} },
+          y:{ beginAtZero:true, ticks:{callback:(v)=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)} }
+        }
+      }
+    });
+
+    // Despesas
+    destroyChart("expense");
+    state.charts.expense = new Chart($("expenseChart"), {
+      type:"doughnut",
+      data:{
+        labels:["Fixas","Custo operacional"],
+        datasets:[{
+          data:[despesasFixas, despesasOperacionais],
+          backgroundColor:["#d1fa20","#62a8ff"],
+          borderColor:"#0f141b",
+          borderWidth:4,
+          hoverOffset:6
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        cutout:"68%",
+        plugins:{
+          legend:{position:"bottom",labels:{usePointStyle:true,padding:18}},
+          tooltip:{callbacks:{label:(ctx)=>`${ctx.label}: ${money(ctx.raw)}`}}
+        }
+      }
+    });
+
+    // Clientes
+    const byClient = new Map();
+    filteredReceitas().forEach(r => {
+      const name = (r.empresa || "Sem identificação").trim();
+      byClient.set(name, (byClient.get(name) || 0) + Number(r.valor || 0));
+    });
+    const top = [...byClient.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+    destroyChart("clients");
+    state.charts.clients = new Chart($("clientsChart"), {
+      type:"bar",
+      data:{
+        labels:top.map(x=>x[0]),
+        datasets:[{
+          label:"Faturamento",
+          data:top.map(x=>x[1]),
+          backgroundColor:"rgba(209,250,32,.78)",
+          borderRadius:7,
+          borderSkipped:false
+        }]
+      },
+      options:{
+        indexAxis:"y",
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>money(ctx.raw)}}},
+        scales:{
+          y:{grid:{display:false}},
+          x:{beginAtZero:true,ticks:{callback:(v)=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}
+        }
+      }
+    });
+
+    // Financeiro
+    destroyChart("finance");
+    state.charts.finance = new Chart($("financeChart"), {
+      type:"bar",
+      data:{
+        labels:["Faturamento","Despesas","Lucro"],
+        datasets:[{
+          data:[faturamento, despesas, lucro],
+          backgroundColor:["#d1fa20","#ffca57", lucro >= 0 ? "#7fe36a" : "#ff5d73"],
+          borderRadius:9,
+          borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>money(ctx.raw)}}},
+        scales:{
+          x:{grid:{display:false}},
+          y:{ticks:{callback:(v)=>"R$ "+Intl.NumberFormat("pt-BR",{notation:"compact"}).format(v)}}
+        }
+      }
+    });
+  }
+
+  function renderRevenueTable(receitas) {
+    const sorted = [...receitas].sort((a,b) => {
+      const da = a.data ? new Date(a.data + "T12:00:00").getTime() : 0;
+      const db = b.data ? new Date(b.data + "T12:00:00").getTime() : 0;
+      return db-da || Number(b.id)-Number(a.id);
+    }).slice(0,12);
+
+    if (!sorted.length) {
+      $("revenueTable").innerHTML = '<div class="empty">Nenhum lançamento neste período.</div>';
+      return;
+    }
+
+    $("revenueTable").innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Status</th><th>Valor</th></tr></thead>
+          <tbody>
+            ${sorted.map(r => `
+              <tr>
+                <td>${r.data ? new Date(r.data+"T12:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                <td>${esc(r.empresa || "—")}</td>
+                <td><span class="pill">${esc(r.tipo || "Não definido")}</span></td>
+                <td>${esc(r.status || "—")}</td>
+                <td class="money">${money(r.valor)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderClientsTable() {
+    if (!state.clientes.length) {
+      $("clientsTable").innerHTML = '<div class="empty">Nenhum cliente cadastrado.</div>';
+      return;
+    }
+
+    $("clientsTable").innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Plano</th><th>Status</th><th>Venc.</th><th>Mensalidade</th></tr></thead>
+          <tbody>
+            ${state.clientes.map(c => `
+              <tr>
+                <td>${esc(c.empresa || "—")}</td>
+                <td>${esc(c.plano || "—")}</td>
+                <td><span class="pill">${esc(c.status || "Não definido")}</span></td>
+                <td>${esc(c.vencimento || "—")}</td>
+                <td class="money">${money(c.valor)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("loginBtn");
+    const msg = $("loginMsg");
+    msg.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
+    try {
+      await login($("email").value.trim(), $("password").value);
+      setView(true);
+      await loadAllData();
+      state.refreshTimer = setInterval(loadAllData, 60000);
+    } catch (err) {
+      msg.textContent = err.message || "Não foi possível entrar.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Entrar";
+    }
+  });
+
+  $("logoutBtn").addEventListener("click", logout);
+  $("refreshBtn").addEventListener("click", loadAllData);
+
+  $("yearFilter").addEventListener("change", () => {
+    state.selectedYear = Number($("yearFilter").value);
+    const months = [...new Set(
+      state.receitas
+        .filter(r => Number(r.ano) === state.selectedYear)
+        .map(r => Number(r.mes))
+    )].sort((a,b)=>a-b);
+
+    $("monthFilter").innerHTML = months.map(v => `<option value="${v}">${MONTH_NAMES[v-1]}</option>`).join("");
+    state.selectedMonth = months[months.length-1] || 1;
+    $("monthFilter").value = state.selectedMonth;
+    renderDashboard();
+  });
+
+  $("monthFilter").addEventListener("change", () => {
+    state.selectedMonth = Number($("monthFilter").value);
+    renderDashboard();
+  });
+
+  async function boot() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      setView(true);
+      await loadAllData();
+      state.refreshTimer = setInterval(loadAllData, 60000);
+    } else {
+      setView(false);
+    }
+  }
+
+  boot();
+</script>
+</body>
+</html>
